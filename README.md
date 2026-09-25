@@ -1,154 +1,171 @@
-# Forward Deployed Engineer (FDE) Assessment
+# AI Model Gateway & Guardrails Platform
 
-## Overview
+An enterprise-oriented AI gateway platform designed to provide a secure, reliable, and controlled interface for LLM applications.
 
-This project implements a practical assessment for a **Forward Deployed Engineer / AI Integration Engineer** role.
+The platform combines **MCP-based service communication, authentication and authorization, PII protection, streaming guardrails, rate limiting, model routing, and fallback handling** into a modular architecture.
 
-The assessment covers:
+## 🚀 Key Capabilities
 
-* MCP server development
-* Authentication and authorization
-* LLM streaming and PII redaction
-* Rate limiting and model fallback
-* Async processing
-* JSON-RPC communication
-* Automated testing
+* **MCP Server** — Exposes structured AI/service functionality through an MCP-compatible interface.
+* **MCP Gateway** — Handles authentication, authorization, request validation, and policy enforcement.
+* **LLM Guardrails** — Detects and redacts sensitive Personally Identifiable Information (PII) from streaming LLM responses.
+* **Model Router** — Routes requests between primary and secondary model endpoints with rate limiting and fallback support.
+* **Usage Tracking** — Maintains request/usage information for controlled model access.
+* **Automated Tests** — Includes component-level tests for the major platform modules.
 
-Each task is implemented independently with a focus on correctness, security, reliability, and testability.
-
----
-
-## Assessment Tasks
-
-### Task 1 — Enterprise Claims MCP Server
-
-Build an MCP server exposing:
-
-* `get_claim_record`
-* `update_claim_status`
-
-Requirements:
-
-* Python MCP SDK
-* Pydantic validation
-* Claim ID format: `CLM-XXXXX`
-* Valid claim statuses
-* STDIO transport
-* JSON-RPC messages only on `stdout`
-* Logs on `stderr`
-
-### Task 2 — MCP Security Gateway
-
-Build an HTTP/JSON-RPC gateway providing:
-
-* Bearer-token authentication
-* `claims_admin` and `claims_viewer` roles
-* `tools/list` forwarding
-* Role-based authorization
-* Protection for `claims_admin_*` tools
-* `-32001 Unauthorized Tool Call`
-* No downstream call for unauthorized requests
-
-### Task 3 — LLM Streaming Guardrail
-
-Build a streaming gateway that detects and redacts:
-
-* Email addresses
-* SSNs
-* Credit card numbers
-
-Sensitive information must be replaced with:
+## 🏗️ Architecture
 
 ```text
-[REDACTED]
+                    Client Application
+                           │
+                           ▼
+                  ┌──────────────────┐
+                  │   MCP Gateway    │
+                  │                  │
+                  │ Auth / Policies  │
+                  │ Request Control  │
+                  └────────┬─────────┘
+                           │
+                           ▼
+                  ┌──────────────────┐
+                  │    MCP Server    │
+                  │                  │
+                  │ Structured Tools │
+                  │ Service Layer    │
+                  └────────┬─────────┘
+                           │
+                           ▼
+                  ┌──────────────────┐
+                  │  LLM Guardrail   │
+                  │                  │
+                  │ PII Detection    │
+                  │ Stream Redaction │
+                  └────────┬─────────┘
+                           │
+                           ▼
+                  ┌──────────────────┐
+                  │   Model Router   │
+                  │                  │
+                  │ Rate Limiting    │
+                  │ Primary Model    │
+                  │ Fallback Model   │
+                  └────────┬─────────┘
+                           │
+                    ┌──────┴──────┐
+                    ▼             ▼
+              Primary Model   Secondary Model
 ```
 
-The implementation must handle PII split across chunks without buffering the complete response.
-
-### Task 4 — Rate Limiting & Model Fallback
-
-Implement:
-
-* Tenant-level token rate limiting
-* `50,000` tokens/minute
-* Sliding-window behavior
-* SQLite persistence
-* `3000 ms` primary model timeout
-* Fallback on HTTP `429`
-* Fallback on timeout
-* Sanitized errors
-* Concurrent request safety
-
----
-
-# Project Structure
+## 📁 Project Structure
 
 ```text
-fde-assessment/
+AI-Model-Gateway-Guardrails-Platform/
 │
-├── README.md
-├── requirements.txt
-├── .gitignore
-│
-├── task1-mcp-server/
+├── mcp-server/
 │   ├── __init__.py
-│   ├── server.py
 │   ├── models.py
+│   ├── server.py
 │   └── tests.py
 │
-├── task2-mcp-gateway/
+├── mcp-gateway/
 │   ├── __init__.py
-│   ├── gateway.py
 │   ├── auth.py
+│   ├── gateway.py
 │   ├── policy.py
 │   └── tests.py
 │
-├── task3-llm-guardrail/
+├── llm-guardrail/
 │   ├── __init__.py
 │   ├── gateway.py
 │   ├── pii_patterns.py
 │   ├── stream_redactor.py
 │   └── tests.py
 │
-└── task4-model-router/
-    ├── __init__.py
-    ├── router.py
-    ├── rate_limiter.py
-    ├── usage_store.py
-    └── tests.py
+├── model-router/
+│   ├── __init__.py
+│   ├── rate_limiter.py
+│   ├── router.py
+│   ├── usage_store.py
+│   └── tests.py
+│
+├── .gitignore
+├── requirements.txt
+└── README.md
 ```
 
-### Folder Responsibilities
+## 🔐 Security & Guardrails
 
-| Folder                | Purpose                                        |
-| --------------------- | ---------------------------------------------- |
-| `task1-mcp-server`    | MCP server and claim operations                |
-| `task2-mcp-gateway`   | Authentication, authorization, and MCP proxy   |
-| `task3-llm-guardrail` | Streaming PII detection and redaction          |
-| `task4-model-router`  | Rate limiting, persistence, and model fallback |
+The platform is designed around several security controls:
 
----
+### Authentication & Authorization
 
-# Technology Stack
+The gateway provides request-level authentication and authorization before allowing access to downstream services.
 
-* Python
-* Official Python MCP SDK
-* FastAPI
-* Pydantic
-* HTTPX
-* Pytest
-* pytest-asyncio
-* SQLite
+### PII Protection
 
----
+The guardrail layer identifies configurable PII patterns and redacts sensitive information from LLM output streams.
 
-# Installation
+Example:
+
+```text
+Original:
+My email is user@example.com and my phone is 9876543210.
+
+Processed:
+My email is [REDACTED] and my phone is [REDACTED].
+```
+
+### Rate Limiting
+
+The model router applies request limits to control model usage and prevent uncontrolled traffic.
+
+### Model Fallback
+
+When the primary model endpoint is unavailable or cannot process a request, the router can fall back to a secondary model endpoint.
+
+## 🧩 Technology Stack
+
+| Area           | Technologies                                      |
+| -------------- | ------------------------------------------------- |
+| Language       | Python                                            |
+| API / Services | HTTP, REST-style services                         |
+| AI Integration | LLM API endpoints                                 |
+| Protocol       | Model Context Protocol (MCP)                      |
+| Security       | Authentication, Authorization, Policy Enforcement |
+| Guardrails     | PII Detection & Redaction                         |
+| Routing        | Primary / Secondary Model Routing                 |
+| Storage        | SQLite                                            |
+| Testing        | Pytest                                            |
+| Development    | Git, GitHub, VS Code                              |
+
+## ⚙️ Configuration
+
+Create a local `.env` file for development configuration.
+
+Example:
+
+```env
+PRIMARY_URL=http://localhost:9100/generate
+SECONDARY_URL=http://localhost:9200/generate
+DOWNSTREAM_URL=http://localhost:8001/mcp
+UPSTREAM_URL=http://localhost:9000/generate
+```
+
+Do not commit real API keys, credentials, tokens, or other secrets to the repository.
+
+## 🛠️ Installation
+
+Clone the repository and create a virtual environment:
 
 ```bash
+git clone https://github.com/Jayasingh174/AI-Model-Gateway-Guardrails-Platform.git
+
+cd AI-Model-Gateway-Guardrails-Platform
+
 python -m venv .venv
 ```
 
-Windows:
+Activate the environment on Windows:
 
 ```bash
 .venv\Scripts\activate
@@ -160,56 +177,88 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
----
+## 🧪 Running Tests
 
-# Run Tests
-
-Run all tests:
+Run the available tests with:
 
 ```bash
-python -m pytest -v
+pytest
 ```
 
-Run individual tasks:
+Individual components can also be tested independently depending on the module configuration.
 
-```bash
-python -m pytest task1-mcp-server/tests.py -v
-python -m pytest task2-mcp-gateway/tests.py -v
-python -m pytest task3-llm-guardrail/tests.py -v
-python -m pytest task4-model-router/tests.py -v
+## 🔄 Request Flow
+
+A typical request follows this flow:
+
+```text
+Client
+  │
+  ▼
+Authentication
+  │
+  ▼
+Authorization / Policy Check
+  │
+  ▼
+MCP Service
+  │
+  ▼
+LLM Guardrail
+  │
+  ├── PII Detection
+  └── Stream Redaction
+  │
+  ▼
+Model Router
+  │
+  ├── Primary Model
+  │
+  └── Secondary Model (Fallback)
+  │
+  ▼
+Controlled Response
 ```
 
----
+## 🎯 Engineering Focus
 
-# Engineering Focus
+This project demonstrates practical implementation of:
 
-The implementation emphasizes:
-
-* Clean and maintainable architecture
-* Strict validation
-* Secure authorization
-* Bounded streaming state
-* Tenant isolation
-* Concurrency safety
-* Model fallback and resilience
+* AI application infrastructure
+* LLM gateway design
+* MCP service integration
+* Authentication and authorization
+* LLM output safety
+* PII detection and redaction
+* Streaming response processing
+* Rate limiting
+* Model fallback strategies
+* Usage persistence
+* Modular Python architecture
 * Automated testing
-* Sanitized client-facing errors
 
-No API keys, credentials, stack traces, or internal implementation details should be exposed to clients or committed to the repository.
+## 🔮 Future Improvements
 
----
+Potential extensions include:
 
-# Submission Checklist
+* JWT/OAuth-based authentication
+* Redis-backed distributed rate limiting
+* Request tracing and observability
+* Structured audit logging
+* Prometheus metrics
+* OpenTelemetry integration
+* Configurable policy management
+* Model health checks
+* Circuit breakers
+* Token and latency monitoring
+* Containerized deployment
+* Cloud deployment
+* LLM evaluation and safety metrics
 
-* [ ] All tasks implemented
-* [ ] Tests passing
-* [ ] `requirements.txt` included
-* [ ] No secrets committed
-* [ ] No generated database files committed
-* [ ] MCP `stdout` contains protocol messages only
-* [ ] Unauthorized requests are blocked
-* [ ] PII is redacted
-* [ ] Rate limiting works per tenant
-* [ ] Fallback behavior works correctly
-* [ ] Errors are sanitized
-"# AI-Model-Gateway-Guardrails-Platform" 
+## 👩‍💻 Author
+
+**Jaya Singh**
+
+AI Engineer focused on **LLM applications, RAG systems, AI agents, FastAPI, and intelligent automation**.
+
+GitHub: [Jayasingh174](https://github.com/Jayasingh174)
