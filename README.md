@@ -259,6 +259,6 @@ Potential extensions include:
 
 **Jaya Singh**
 
-AI Engineer focused on **LLM applications, RAG systems, AI agents, FastAPI, and intelligent automation**.
+AI Software Engineer focused on **LLM applications, RAG systems, AI agents, FastAPI, and intelligent automation**.
 
 GitHub: [Jayasingh174](https://github.com/Jayasingh174)
